@@ -1,0 +1,93 @@
+_schema-version: "3.2"
+ID: managewodest
+description: Fiori elements app
+version: 0.0.1
+modules:
+- name: managewodest-dest-content
+  type: com.sap.application.content
+  requires:
+  - name: managewodest-destination-service
+    parameters:
+      content-target: true
+  - name: managewodest-repo-host
+    parameters:
+      service-key:
+        name: managewodest-repo-host-key
+  - name: managewodest-uaa
+    parameters:
+      service-key:
+        name: managewodest-uaa-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: managewodest_repo_host
+          ServiceInstanceName: managewodest-html5-srv
+          ServiceKeyName: managewodest-repo-host-key
+          sap.cloud.service: managewodest
+        - Authentication: OAuth2UserTokenExchange
+          Name: managewodest_uaa
+          ServiceInstanceName: managewodest-xsuaa-srv
+          ServiceKeyName: managewodest-uaa-key
+          sap.cloud.service: managewodest
+        existing_destinations_policy: update
+  build-parameters:
+    no-source: true
+- name: managewodest-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: managewodest-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - managewodestfiori.zip
+      name: managewodestfiori
+      target-path: resources/
+- name: managewodestfiori
+  type: html5
+  path: managewodestfiori
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: managewodest-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: managewodest-xsuaa-srv
+    service-plan: application
+- name: managewodest-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: managewodest-destination-service
+    service-plan: lite
+- name: managewodest-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: managewodest-html5-srv
+    service-plan: app-host
+parameters:
+  deploy_mode: html5-repo
